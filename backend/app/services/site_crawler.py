@@ -54,8 +54,10 @@ PERSON_ROLE_REV_RE = re.compile(
 )
 
 TEXT_SIGNALS: dict[str, re.Pattern] = {
-    "hiring": re.compile(r"(hledáme (?:nov[ée]ho |nov[ou]u |do týmu )?\w+|přijmeme|volná místa|volné pozice|"
-                         r"nabídka práce|připoj(?:te)? se k (?:našemu )?týmu|hledáme posil|rozšiřujeme tým|we.?re hiring)", re.I),
+    "hiring": re.compile(r"(hledáme\s+(?:\w+\s+){0,3}?(?:kolegu|kolegyni|kolegy|posilu|posily|zaměstnanc\w*|pracovník\w*|"
+                         r"brigádník\w*|do (?:našeho )?týmu|na pozici)|přijmeme\s+(?:\w+\s+){0,2}?(?:\w+(?:ka|ku|ce|ře|tele|íka))\b|"
+                         r"volná (?:pracovní )?místa|volné (?:pracovní )?pozice|nabídka práce|připoj(?:te)? se k (?:našemu )?týmu|"
+                         r"rozšiřujeme (?:náš )?tým|we.?re hiring)", re.I),
     "new_branch": re.compile(r"(nov(?:ou|á|é|ého) poboč\w*|otevíráme|otevřeli jsme|nově otevřen\w*|druhou poboč\w*|"
                              r"nová provozovna|nové studio|nový showroom)", re.I),
     "new_service": re.compile(r"(nově nabízíme|nová služba|nově v nabídce|nově u nás|novinka v nabídce|nově poskytujeme)", re.I),

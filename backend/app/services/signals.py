@@ -114,7 +114,7 @@ def store_signals(db: Session, company: Company, signals: list[dict[str, Any]]) 
 
 
 def signal_age_factor(detected_at: datetime) -> float:
-    days = (datetime.utcnow() - detected_at).days
+    days = (utcnow() - detected_at).days
     if days <= 60:
         return 1.0
     if days <= 180:

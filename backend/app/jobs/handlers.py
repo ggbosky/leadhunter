@@ -44,7 +44,7 @@ def h_discover(db: Session, job: AutomationJob) -> dict[str, Any]:
             if c and c.website_url:
                 enqueue(db, "analyze", {"company_id": cid}, priority=70, dedupe_key=f"analyze:{cid}",
                         trigger=job.trigger, parent_id=job.id)
-    if stats.found == 0 and stats.errors and len(stats.errors) >= len(stats.sources_used or [1]):
+    if stats.sources_used and stats.found == 0 and stats.errors and len(stats.errors) >= len(stats.sources_used):
         raise RuntimeError("Všechny zdroje selhaly: " + "; ".join(stats.errors)[:500])
     return stats.to_dict()
 

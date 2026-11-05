@@ -44,3 +44,10 @@ def test_technical_audit_flags_old_site():
     codes = {i["code"] for i in audit["issues"]}
     assert {"no_https", "no_viewport", "old_copyright", "old_jquery", "table_layout", "deprecated_html"} <= codes
     assert audit["technical_score"] < 50
+
+
+def test_hiring_signal_no_false_positive():
+    ex = extract_page("<html><body><p>Řešení hledáme podle konkrétní situace a potřeb klienta.</p></body></html>", "https://x.cz")
+    assert "hiring" not in ex["text_signals"]
+    ex = extract_page("<html><body><p>Hledáme novou kolegyni do salonu. Přijmeme kadeřnici na HPP.</p></body></html>", "https://x.cz")
+    assert "hiring" in ex["text_signals"]

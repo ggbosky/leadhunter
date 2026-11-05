@@ -147,10 +147,10 @@ def gather_facts(db: Session, company: Company, contact: Contact | None) -> list
     q = ex.get("quality") or {}
     if q.get("testimonials"):
         sn = (ex.get("quality_snippets") or {}).get("testimonials") or []
-        facts.append(Fact("testimonials", "Na webu mají reference / recenze klientů" + (f" („{sn[0][:120]}…“)" if sn else ""), "web"))
+        facts.append(Fact("testimonials", "Na webu mají reference / recenze klientů", "web" + (f" – úryvek: „{sn[0][:120]}…“" if sn else "")))
     if q.get("awards"):
         sn = (ex.get("quality_snippets") or {}).get("awards") or []
-        facts.append(Fact("awards", "Na webu zmiňují ocenění" + (f": {sn[0][:120]}" if sn else ""), "web"))
+        facts.append(Fact("awards", "Na webu zmiňují ocenění", "web" + (f" – úryvek: „{sn[0][:120]}…“" if sn else "")))
     if q.get("weddings") and company.segment_key not in ("wedding_agency", "wedding_florist", "wedding_photographer"):
         facts.append(Fact("weddings", "Dělají i svatební zakázky", "web"))
     if ex.get("years_experience"):
@@ -386,6 +386,8 @@ def generate_message_set(db: Session, company: Company, strategy: str | None = N
     sender = (msg_cfg.get("sender_name") or "").strip()
     contact = contact or best_contact(company)
     facts = gather_facts(db, company, contact)
+    if (not strategy or strategy == "auto") and company.campaign and company.campaign.default_strategy:
+        strategy = company.campaign.default_strategy
     if not strategy or strategy == "auto":
         strategy = choose_strategy(db, company, facts)
     strategy = strategy.upper()

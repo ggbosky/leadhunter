@@ -1,7 +1,7 @@
 """Převod ORM objektů na JSON pro API."""
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import select
@@ -80,7 +80,7 @@ def task_dict(t: FollowUpTask, with_company: bool = False) -> dict[str, Any]:
     d = {"id": t.id, "company_id": t.company_id, "contact_id": t.contact_id, "task_type": t.task_type, "title": t.title,
          "due_at": iso(t.due_at), "status": t.status, "sequence_number": t.sequence_number, "reason": t.reason,
          "completed_at": iso(t.completed_at), "cancelled_reason": t.cancelled_reason,
-         "overdue": t.status == "open" and t.due_at < datetime.utcnow()}
+         "overdue": t.status == "open" and t.due_at < datetime.now(timezone.utc).replace(tzinfo=None)}
     if with_company and t.company:
         d["company_name"] = t.company.name
         d["contact_name"] = t.contact.name if t.contact else None

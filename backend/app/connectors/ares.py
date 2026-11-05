@@ -166,26 +166,40 @@ class AresConnector(Connector):
 
     # ------------------------------------------------------------------
     def search(self, query: DiscoveryQuery):
-        """Discovery podle klíčového slova v obchodním jménu (ARES neobsahuje weby – nutné dohledání)."""
+        """Discovery podle klíčového slova v obchodním jménu (ARES neobsahuje weby – nutné dohledání).
+
+        ARES filtruje sídlo jen podle obce, kraj proto filtrujeme sami a stránkujeme (max. 5 × 100 záznamů).
+        """
         if not query.keyword:
             return
-        body: dict[str, Any] = {"obchodniJmeno": query.keyword, "start": 0, "pocet": min(100, query.limit)}
-        r = api_request("POST", f"{self.base_url}/ekonomicke-subjekty/vyhledat", rate_key="ares",
-                        min_interval=self.min_interval, json=body, timeout=30)
-        if r.status_code >= 400:
-            raise ConnectorError(f"ARES HTTP {r.status_code}")
-        for s in r.json().get("ekonomickeSubjekty", []):
-            p = self.parse_subject(s)
-            if not p["active"]:
-                continue
-            if query.region_code and p["region_code"] and p["region_code"] != query.region_code:
-                continue
-            yield RawCompany(
-                source_key="ares", external_id=p["ico"], name=p["legal_name"], segment_key=query.segment_key,
-                country=p["country"], region_code=p["region_code"], city=p["city"], street=p["street"],
-                postcode=p["postcode"], ico=p["ico"], legal_form=p["legal_form"], founded_on=p["founded_on"],
-                source_url=f"https://ares.gov.cz/ekonomicke-subjekty?ico={p['ico']}", raw=p,
-            )
+        yielded = 0
+        for page in range(5):
+            body: dict[str, Any] = {"obchodniJmeno": query.keyword, "start": page * 100, "pocet": 100}
+            r = api_request("POST", f"{self.base_url}/ekonomicke-subjekty/vyhledat", rate_key="ares",
+                            min_interval=self.min_interval, json=body, timeout=30)
+            if r.status_code >= 400:
+                raise ConnectorError(f"ARES HTTP {r.status_code}")
+            data = r.json()
+            subjects = data.get("ekonomickeSubjekty", [])
+            for s in subjects:
+                p = self.parse_subject(s)
+                if not p["active"]:
+                    continue
+                if query.region_code and p["region_code"] != query.region_code:
+                    continue
+                if query.city and normalize_name(p.get("city") or "")[:5] != normalize_name(query.city)[:5]:
+                    continue
+                yield RawCompany(
+                    source_key="ares", external_id=p["ico"], name=p["legal_name"], segment_key=query.segment_key,
+                    country=p["country"], region_code=p["region_code"], city=p["city"], street=p["street"],
+                    postcode=p["postcode"], ico=p["ico"], legal_form=p["legal_form"], founded_on=p["founded_on"],
+                    source_url=f"https://ares.gov.cz/ekonomicke-subjekty?ico={p['ico']}", raw=p,
+                )
+                yielded += 1
+                if yielded >= query.limit:
+                    return
+            if (page + 1) * 100 >= int(data.get("pocetCelkem") or 0):
+                return
 
 
 def years_since(iso_date: str | None) -> float | None:

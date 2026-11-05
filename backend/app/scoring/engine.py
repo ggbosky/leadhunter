@@ -200,8 +200,15 @@ def business_quality(ctx: LeadContext) -> Component:
         wc = ex.get("total_word_count") or 0
         has_services = "services" in (ex.get("pages_crawled") or [])
         ov = 35 + (20 if has_services else 0) + min(30, wc / 100) + (10 if ex.get("price_count") else 0)
-    factors.append(Factor("Rozsah a popis nabídky", None if ov is None else _clamp(ov), 1.0,
-                          f"{ex.get('total_word_count', 0)} slov textu, {'stránka služeb' if 'services' in (ex.get('pages_crawled') or []) else 'bez stránky služeb'}" if crawled else ""))
+    offer_ev = ""
+    if crawled:
+        wc = ex.get("total_word_count") or 0
+        has_services = "services" in (ex.get("pages_crawled") or [])
+        offer_ev = (f"samostatná stránka služeb, {wc} slov textu" if has_services
+                    else f"podrobný popis nabídky ({wc} slov)" if wc >= 800 else f"stručný popis nabídky ({wc} slov)")
+        if ex.get("price_count"):
+            offer_ev += ", uvedené ceny"
+    factors.append(Factor("Rozsah a popis nabídky", None if ov is None else _clamp(ov), 1.0, offer_ev))
 
     # prémiové pozicování
     prem = q.get("premium")
@@ -318,7 +325,8 @@ def commercial_potential(ctx: LeadContext) -> Component:
 
 
 def buying_readiness(ctx: LeadContext) -> Component:
-    if not ctx.extracted and not ctx.signals and ctx.founded_on is None:
+    if not ctx.extracted and not ctx.signals:
+        # bez analyzovaného webu nelze tvrdit, že signály chybí → neznámé, ne nízké
         return Component("buying_readiness", "Buying Readiness", None, 0.0, ["Signály zatím nebyly vyhodnoceny (web neanalyzován)"])
     if not ctx.signals:
         return Component("buying_readiness", "Buying Readiness", 10.0, 0.4,
@@ -434,7 +442,8 @@ def outreach_reason(ctx: LeadContext, comps: dict[str, Component], wq: float | N
     parts = []
     bq = comps["business_quality"]
     if bq.score is not None and bq.score >= 60:
-        good = [f.evidence for f in sorted(bq.factors, key=lambda f: -(f.value or 0) * f.weight) if f.value and f.value >= 60 and f.evidence][:2]
+        good = [f.evidence for f in sorted(bq.factors, key=lambda f: -(f.value or 0) * f.weight)
+                if f.value and f.value >= 62 and f.evidence and "neověřena" not in f.evidence][:2]
         if good:
             parts.append("Silná stránka podnikání: " + "; ".join(good))
     if basis == "no_website":

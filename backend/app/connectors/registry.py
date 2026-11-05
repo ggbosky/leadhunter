@@ -1,7 +1,6 @@
 """Registr konektorů a synchronizace evidence zdrojů do DB."""
 from __future__ import annotations
 
-from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -72,4 +71,4 @@ def record_usage(db: Session, key: str, *, requests: int = 0, errors: int = 0, r
         ds.last_status = "error"
     elif requests:
         ds.last_status = "ok"
-    ds.last_check_at = datetime.utcnow()
+    ds.last_check_at = utcnow()

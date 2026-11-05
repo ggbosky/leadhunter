@@ -91,6 +91,8 @@ def run_discovery(db: Session, query: DiscoveryQuery, source_keys: list[str] | N
         db.commit()
         if max_new is not None and stats.created >= max_new:
             break
+    if not stats.sources_used:
+        stats.errors.append("Žádný dostupný zdroj pro vyhledávání (zkontrolujte Zdroje dat a API klíče)")
     return stats
 
 
@@ -110,7 +112,8 @@ def plan_discovery_queries(db: Session, limit_queries: int = 12) -> list[Discove
     for sk, sw in segs:
         for rc, rp in regions:
             combos.append((sw * rp, sk, rc))
-    combos.sort(reverse=True)
+    # stabilní řazení: při shodě priority zůstává pořadí segmentů (Tier 1 dle zadání) a regionů
+    combos.sort(key=lambda x: -x[0])
     # rotace: preferuj kombinace, které nebyly nedávno spuštěny
     from sqlalchemy import select
 
