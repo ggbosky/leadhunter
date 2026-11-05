@@ -80,8 +80,8 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
         description={[c.segment_label, c.city, c.region_name, c.legal_form].filter(Boolean).join(" · ")}
         actions={
           <>
-            <Button variant="outline" onClick={analyze} disabled={busy || !c.website_url}>
-              {busy ? <Loader2 className="animate-spin" /> : <ScanSearch />} Analyzovat znovu
+            <Button variant="outline" onClick={analyze} disabled={busy}>
+              {busy ? <Loader2 className="animate-spin" /> : <ScanSearch />} {c.website_url ? "Analyzovat znovu" : "Dohledat web a analyzovat"}
             </Button>
             <Button variant="outline" onClick={async () => { await post(`/companies/${c.id}/rescore`); mutate(); toast.success("Skóre přepočítáno"); }}>
               <RefreshCw /> Přepočítat skóre
@@ -101,6 +101,13 @@ export default function LeadDetailPage({ params }: { params: Promise<{ id: strin
           </a>
         ) : (
           <Badge variant="warning">Bez webu</Badge>
+        )}
+        {c.website_lookup && (
+          <span className="text-xs text-muted-foreground" title={c.website_lookup.evidence}>
+            {c.website_lookup.method === "none"
+              ? `Web nedohledán (${fmtDate(c.website_lookup_at)})`
+              : `Web dohledán automaticky – ${c.website_lookup.evidence}`}
+          </span>
         )}
         {c.ico && <span className="text-muted-foreground">IČO {c.ico}</span>}
         {Object.entries(c.social_links ?? {}).map(([k, v]) => (

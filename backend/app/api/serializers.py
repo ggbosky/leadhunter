@@ -162,6 +162,7 @@ def company_detail(db: Session, c: Company) -> dict[str, Any]:
         "registered_capital": c.registered_capital, "nace_codes": c.nace_codes,
         "street": c.street, "postcode": c.postcode, "lat": c.lat, "lon": c.lon, "phone": c.phone, "email": c.email,
         "social_links": c.social_links, "opening_hours": c.opening_hours, "notes": c.notes,
+        "website_lookup": c.website_lookup_result, "website_lookup_at": iso(c.website_lookup_at),
         "sources": [{"source": s.data_source.name, "key": s.data_source.key, "external_id": s.external_id,
                      "url": s.source_url, "fetched_at": iso(s.fetched_at)} for s in c.sources],
         "website": None if not w else {

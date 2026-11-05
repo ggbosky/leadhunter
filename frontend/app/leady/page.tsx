@@ -212,11 +212,10 @@ function LeadsInner() {
                   <TD><Badge variant={STATUS_VARIANT[l.status] ?? "muted"}>{meta?.statuses[l.status] ?? l.status}</Badge></TD>
                   <TD className="text-xs text-muted-foreground whitespace-nowrap">{fmtDate(l.last_analyzed_at)}</TD>
                   <TD>
-                    {l.website_url && (
-                      <Button size="sm" variant="ghost" disabled={busy.has(l.id)} onClick={() => analyze([l.id])} title="Analyzovat web">
-                        {busy.has(l.id) ? <Loader2 className="animate-spin" /> : <ScanSearch />}
-                      </Button>
-                    )}
+                    <Button size="sm" variant="ghost" disabled={busy.has(l.id)} onClick={() => analyze([l.id])}
+                      title={l.website_url ? "Analyzovat web" : "Dohledat a ověřit web, pak analyzovat"}>
+                      {busy.has(l.id) ? <Loader2 className="animate-spin" /> : <ScanSearch />}
+                    </Button>
                   </TD>
                 </TR>
               ))}

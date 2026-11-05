@@ -173,6 +173,8 @@ export type CompanyDetail = LeadSummary & {
   social_links: Record<string, string>;
   opening_hours: string | null;
   notes: string | null;
+  website_lookup: { url: string | null; domain: string | null; method: string; checked: number; evidence: string } | null;
+  website_lookup_at: string | null;
   sources: { source: string; key: string; external_id: string; url: string | null; fetched_at: string }[];
   website: {
     url: string;

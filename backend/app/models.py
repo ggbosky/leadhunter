@@ -120,6 +120,8 @@ class Company(TimestampMixin, Base):
     first_seen_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
     last_seen_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
     last_analyzed_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    website_lookup_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    website_lookup_result: Mapped[Optional[dict]] = mapped_column(JSON)
 
     campaign_id: Mapped[Optional[int]] = mapped_column(ForeignKey("campaigns.id", ondelete="SET NULL"))
     campaign: Mapped[Optional[Campaign]] = relationship(back_populates="companies")

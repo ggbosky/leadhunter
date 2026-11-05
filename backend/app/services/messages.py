@@ -86,6 +86,7 @@ WORK_PHRASES = {
 DEFAULT_WORK = ("vaši práci", "služby, které nabízíte")
 
 ISSUE_PHRASES = {
+    "no_https": "prohlížeče u webu zobrazují upozornění „nezabezpečeno“, což může nové zákazníky odradit",
     "no_viewport": "na mobilu se web nezobrazuje tak dobře, jak by si vaše práce zasloužila",
     "mobile_overflow": "na mobilu se obsah nevejde na šířku obrazovky, a většina lidí dnes přichází právě z telefonu",
     "mobile_small_text": "na mobilu je text dost drobný a hůř se čte",
@@ -168,7 +169,13 @@ def gather_facts(db: Session, company: Company, contact: Contact | None) -> list
         facts.append(Fact("cms", f"Web běží na {ex['cms']}", "technická analýza"))
     audit = latest_audit(db, company)
     if audit:
-        for i in (audit.issues or [])[:4]:
+        # pořadí podle toho, co zákazník na webu skutečně pozná (ne podle technické závažnosti)
+        relevance = ["no_viewport", "mobile_overflow", "no_https", "no_cta", "lowres_images", "broken_images",
+                     "mobile_small_text", "old_copyright", "hard_to_contact", "thin_content", "table_layout", "slow",
+                     "site_builder", "deprecated_html"]
+        ordered = sorted((i for i in audit.issues or [] if i["code"] in ISSUE_PHRASES), key=lambda i: relevance.index(i["code"])
+                         if i["code"] in relevance else 99)
+        for i in ordered[:4]:
             if i["code"] in ISSUE_PHRASES:
                 facts.append(Fact(f"issue:{i['code']}", ISSUE_PHRASES[i["code"]], f"technický audit: {i['detail']}"))
         if audit.screenshots:

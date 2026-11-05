@@ -29,6 +29,7 @@ from .signals import detect_signals, signal_age_factor, store_signals
 from .site_crawler import crawl_site
 from .suppression import find_suppression
 from .technical_audit import technical_audit
+from .website_lookup import find_website, lookup_summary
 from .vision import analyze_visuals
 
 log = logging.getLogger(__name__)
@@ -140,7 +141,8 @@ def enrich_registry(db: Session, company: Company, extracted: dict[str, Any] | N
     return info
 
 
-def analyze_company(db: Session, company_id: int, *, screenshots: bool = True, vision: bool = True) -> dict[str, Any]:
+def analyze_company(db: Session, company_id: int, *, screenshots: bool = True, vision: bool = True,
+                    lookup_website: bool = True) -> dict[str, Any]:
     company = db.get(Company, company_id)
     if company is None:
         raise ValueError(f"Firma {company_id} neexistuje")
@@ -151,6 +153,26 @@ def analyze_company(db: Session, company_id: int, *, screenshots: bool = True, v
     url = ensure_url(company.website_url)
 
     with PoliteFetcher() as fetcher:
+        # 0) dohledání webu, pokud ho firma v datech nemá (nejdřív registr – IČO a jednatelé slouží k ověření)
+        registry: dict[str, Any] | None = None
+        if not url and company.country in ("CZ", "SK") and lookup_website:
+            if company.ico:
+                registry = enrich_registry(db, company, {})
+            lr = find_website(company, fetcher)
+            company.website_lookup_at = utcnow()
+            company.website_lookup_result = lookup_summary(lr)
+            if lr.url and lr.domain:
+                clash = db.scalar(select(Company).where(Company.domain == lr.domain, Company.id != company.id))
+                if clash is None:
+                    company.website_url, company.domain = lr.url, lr.domain
+                    url = lr.url
+                    log_lines.append(f"Web dohledán a ověřen: {lr.domain} ({lr.evidence})")
+                else:
+                    log_lines.append(f"Dohledaný web {lr.domain} už patří jiné firmě v CRM (#{clash.id}) – možná duplicita")
+            else:
+                log_lines.append(f"Web nedohledán (ověřeno {lr.candidates_checked} kandidátů)")
+            db.flush()
+
         # 1) crawl
         if url:
             crawl = crawl_site(url, fetcher)
@@ -202,7 +224,8 @@ def analyze_company(db: Session, company_id: int, *, screenshots: bool = True, v
             db.flush()
 
         # 2) registr
-        registry = enrich_registry(db, company, extracted)
+        if registry is None or (extracted and not company.ico):
+            registry = enrich_registry(db, company, extracted)
         if registry:
             log_lines.append(f"ARES: {registry.get('legal_name')} (IČO {registry.get('ico')})")
 

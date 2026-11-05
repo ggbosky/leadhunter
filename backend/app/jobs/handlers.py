@@ -99,7 +99,16 @@ def _analysis_candidates(db: Session, limit: int) -> list[int]:
         return tier_w * float(cfg.get("multiplier", 1.0)) * (1 + rp / 5) * never
 
     ranked = sorted((c for c in rows if prio(c) > 0), key=prio, reverse=True)
-    return [c.id for c in ranked[:limit]]
+    out = [c.id for c in ranked[:limit]]
+    # firmy bez webu: pokus o dohledání a ověření webu (max. třetina denní kapacity)
+    lookup_slots = max(0, min(limit - len(out), max(1, limit // 3)))
+    if lookup_slots:
+        no_web = db.scalars(select(Company).where(
+            Company.website_url.is_(None), Company.website_lookup_at.is_(None), Company.country.in_(["CZ", "SK"]),
+            Company.status.in_(["new", "analyzed"]),
+        ).limit(500)).all()
+        out += [c.id for c in sorted((c for c in no_web if prio(c) > 0), key=prio, reverse=True)[:lookup_slots]]
+    return out
 
 
 @handler("analyze_batch")
