@@ -32,6 +32,17 @@ a pokud nemá data, řekne to.
 
 Požadavky: **Python 3.11+**, **Node.js 20+**, volitelně **[Ollama](https://ollama.com)** pro lokální AI.
 
+**Nejjednodušší způsob (Windows / macOS / Linux):** stáhněte projekt a spusťte
+
+- Windows: dvojklik na **`Spustit Lead Hunter.bat`**
+- macOS: dvojklik na **`Spustit Lead Hunter.command`**
+- nebo v terminálu: `python run.py`
+
+Při prvním spuštění se vše nainstaluje (několik minut), pak se aplikace sama otevře v prohlížeči
+na http://localhost:3000. Další spuštění trvají pár sekund. Ukončení: Ctrl+C / zavřít okno.
+
+Alternativně skripty pro Linux/macOS:
+
 ```bash
 ./scripts/setup.sh      # nainstaluje závislosti, Chromium pro screenshoty, vytvoří DB
 ./scripts/start.sh      # spustí backend (API + worker + plánovač) a frontend
