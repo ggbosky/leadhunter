@@ -39,6 +39,13 @@ Požadavky: **Python 3.11+**, **Node.js 20+**, volitelně **[Ollama](https://oll
 
 Otevřete **http://localhost:3000**. API dokumentace je na http://127.0.0.1:8000/docs.
 
+### Spuštění v prohlížeči přes GitHub Codespaces (bez instalace)
+
+Na GitHubu: **Code → Codespaces → Create codespace on `claude/quirky-wozniak-fx8c95`**. První spuštění
+trvá několik minut (instalace), pak se aplikace otevře sama; jinak ji najdete v záložce **PORTS** (port 3000).
+Adresa je soukromá – otevře ji jen váš přihlášený GitHub účet. Codespace se po ~30 minutách nečinnosti
+uspí (s ním i automatizace) a znovu ho spustíte z GitHubu; data zůstávají uložená.
+
 Doporučené první kroky:
 
 1. **Nastavení → AI & systém** – zkontrolujte, zda je dostupná Ollama / vision model a Playwright.
