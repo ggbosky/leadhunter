@@ -158,3 +158,19 @@ def test_refused_person_blocked_across_companies(db):
     with pytest.raises(OutreachBlocked):
         mark_contacted(db, c2, contact=ct2)
     db.rollback()
+
+
+def test_catch_up_daily_runs_once(db):
+    from app.jobs.scheduler import catch_up_daily
+    from app.settings_store import get_setting, set_setting
+
+    cfg = get_setting(db, "automation")
+    cfg.update(daily_run_hour=0, daily_run_minute=0, paused=False)
+    set_setting(db, "automation", cfg)
+    db.commit()
+    first = catch_up_daily()
+    second = catch_up_daily()
+    assert first is True and second is False
+    for j in db.scalars(select(AutomationJob).where(AutomationJob.job_type == "daily_pipeline")):
+        j.status = "cancelled"
+    db.commit()

@@ -420,3 +420,35 @@ class AppSetting(TimestampMixin, Base):
 
     key: Mapped[str] = mapped_column(String(100), primary_key=True)
     value: Mapped[Any] = mapped_column(JSON)
+
+
+# ---------------------------------------------------------------------------
+# Pojistka pro PostgreSQL: texty delší než sloupec se před uložením zkrátí
+# (SQLite délku nevynucuje, Postgres by uložení odmítl).
+# ---------------------------------------------------------------------------
+from sqlalchemy import String as _String  # noqa: E402
+from sqlalchemy import event as _event  # noqa: E402
+from sqlalchemy.orm import Session as _Session  # noqa: E402
+
+_STRING_LIMITS: dict[type, list[tuple[str, int]]] = {}
+
+
+def _limits_for(cls: type) -> list[tuple[str, int]]:
+    if cls not in _STRING_LIMITS:
+        out = []
+        table = getattr(cls, "__table__", None)
+        if table is not None:
+            for col in table.columns:
+                if isinstance(col.type, _String) and getattr(col.type, "length", None):
+                    out.append((col.key, int(col.type.length)))
+        _STRING_LIMITS[cls] = out
+    return _STRING_LIMITS[cls]
+
+
+@_event.listens_for(_Session, "before_flush")
+def _truncate_strings(session, flush_context, instances) -> None:  # pragma: no cover - triviální
+    for obj in list(session.new) + list(session.dirty):
+        for key, length in _limits_for(type(obj)):
+            val = getattr(obj, key, None)
+            if isinstance(val, str) and len(val) > length:
+                setattr(obj, key, val[:length])

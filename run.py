@@ -109,7 +109,7 @@ def setup_frontend(npm: str) -> None:
         shutil.copy(FRONTEND / ".env.example", env_local)
     build_id = FRONTEND / ".next" / "BUILD_ID"
     sources = [p for d in ("app", "components", "lib") for p in (FRONTEND / d).rglob("*") if p.is_file()]
-    sources += [FRONTEND / f for f in ("package.json", "next.config.ts", "tsconfig.json")]
+    sources += [FRONTEND / f for f in ("package.json", "next.config.mjs", "tsconfig.json")]
     newest = max(p.stat().st_mtime for p in sources if p.exists())
     if not build_id.exists() or build_id.stat().st_mtime < newest:
         say("Sestavuji frontend…")

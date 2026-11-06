@@ -30,6 +30,9 @@ a pokud nemá data, řekne to.
 
 ## Rychlý start
 
+> **Chcete aplikaci jen otevírat v prohlížeči přes webovou adresu, bez instalace?**
+> Postupujte podle **[DEPLOY.md](DEPLOY.md)** – nasazení zdarma na Hugging Face + Neon, cca 15 minut jednorázově.
+
 Požadavky: **Python 3.11+**, **Node.js 20+**, volitelně **[Ollama](https://ollama.com)** pro lokální AI.
 
 **Nejjednodušší způsob (Windows / macOS / Linux):** stáhněte projekt a spusťte

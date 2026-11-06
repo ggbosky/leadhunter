@@ -76,7 +76,12 @@ class Settings(BaseSettings):
     @property
     def sqlalchemy_url(self) -> str:
         if self.database_url:
-            return self.database_url
+            url = self.database_url.strip()
+            # Neon / Supabase / Heroku dávají postgres:// nebo postgresql:// – použijeme ovladač psycopg 3
+            for prefix in ("postgres://", "postgresql://"):
+                if url.startswith(prefix):
+                    return "postgresql+psycopg://" + url[len(prefix):]
+            return url
         return f"sqlite:///{(self.data_dir / 'leadhunter.db').as_posix()}"
 
     @property

@@ -31,7 +31,8 @@ def run_migrations() -> None:
     cfg = Config(str(BACKEND_DIR / "alembic.ini"))
     cfg.attributes["configure_logger"] = False
     cfg.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
-    cfg.set_main_option("sqlalchemy.url", get_settings().sqlalchemy_url)
+    # configparser interpoluje %, hesla v URL (např. %40) je nutné escapovat
+    cfg.set_main_option("sqlalchemy.url", get_settings().sqlalchemy_url.replace("%", "%%"))
     command.upgrade(cfg, "head")
 
 
@@ -54,7 +55,9 @@ async def lifespan(app: FastAPI):
         WORKER.start()
     if s.scheduler_enabled:
         start_scheduler()
-    log.info("Lead Hunter připraven (DB: %s)", s.sqlalchemy_url)
+    from sqlalchemy.engine import make_url
+
+    log.info("Lead Hunter připraven (DB: %s)", make_url(s.sqlalchemy_url).render_as_string(hide_password=True))
     yield
     shutdown_scheduler()
     if WORKER:

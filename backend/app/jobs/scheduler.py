@@ -49,7 +49,38 @@ def start_scheduler() -> BackgroundScheduler:
     _scheduler.add_job(sources_tick, IntervalTrigger(hours=12), id="check_sources", replace_existing=True)
     _scheduler.start()
     log.info("Plánovač spuštěn")
+    catch_up_daily()
     return _scheduler
+
+
+def catch_up_daily() -> bool:
+    """Pokud server dnes v čase denního běhu neběžel (uspaný hosting, vypnutý počítač), dožene ho."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    from sqlalchemy import select
+
+    from ..models import AutomationJob
+
+    with SessionLocal() as db:
+        cfg = get_setting(db, "automation")
+        if cfg.get("paused"):
+            return False
+        tz = ZoneInfo(cfg.get("timezone", "Europe/Prague"))
+        now = datetime.now(tz)
+        due = now.replace(hour=int(cfg["daily_run_hour"]), minute=int(cfg["daily_run_minute"]), second=0, microsecond=0)
+        if now < due:
+            return False
+        start_utc = due.replace(hour=0, minute=0).astimezone(ZoneInfo("UTC")).replace(tzinfo=None)
+        ran = db.scalar(select(AutomationJob.id).where(AutomationJob.job_type == "daily_pipeline",
+                                                       AutomationJob.created_at >= start_utc).limit(1))
+        if ran:
+            return False
+        enqueue(db, "daily_pipeline", {"catch_up": True}, priority=40,
+                dedupe_key=f"daily_pipeline:{now.date().isoformat()}", trigger="scheduler")
+        db.commit()
+        log.info("Dnešní denní běh byl zmeškán – spouštím ho dodatečně")
+        return True
 
 
 def reschedule() -> None:

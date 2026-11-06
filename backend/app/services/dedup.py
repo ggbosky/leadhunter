@@ -107,7 +107,7 @@ def upsert_company(db: Session, raw: RawCompany, data_source: DataSource) -> tup
         seg = get_segment(raw.segment_key)
         company = Company(
             name=raw.name.strip()[:300],
-            normalized_name=prep["normalized_name"] or raw.name.lower(),
+            normalized_name=(prep["normalized_name"] or raw.name.lower())[:300],
             ico=prep["ico"],
             legal_form=raw.legal_form,
             founded_on=raw.founded_on,
@@ -115,18 +115,18 @@ def upsert_company(db: Session, raw: RawCompany, data_source: DataSource) -> tup
             tier=seg.tier if seg else None,
             country=raw.country or "CZ",
             region_code=raw.region_code,
-            city=raw.city,
-            street=raw.street,
-            postcode=raw.postcode,
+            city=(raw.city or None) and raw.city[:120],
+            street=(raw.street or None) and raw.street[:200],
+            postcode=(raw.postcode or None) and raw.postcode[:16],
             normalized_address=prep["normalized_address"],
             lat=raw.lat,
             lon=raw.lon,
             phone=prep["phone"],
             email=prep["email"],
-            website_url=prep["website"],
+            website_url=(prep["website"] or None) and prep["website"][:500],
             domain=prep["domain"],
             social_links=prep["socials"],
-            opening_hours=raw.opening_hours,
+            opening_hours=(raw.opening_hours or None) and raw.opening_hours[:300],
             osm_ref=raw.external_id if raw.source_key == "osm" else None,
             status="new",
             first_seen_at=now,
@@ -169,10 +169,10 @@ def upsert_company(db: Session, raw: RawCompany, data_source: DataSource) -> tup
 
     # evidence zdroje (upsert)
     src = db.scalar(select(CompanySource).where(
-        CompanySource.data_source_id == data_source.id, CompanySource.external_id == raw.external_id))
+        CompanySource.data_source_id == data_source.id, CompanySource.external_id == raw.external_id[:200]))
     if src is None:
-        db.add(CompanySource(company_id=company.id, data_source_id=data_source.id, external_id=raw.external_id,
-                             source_url=raw.source_url, raw=raw.raw, fetched_at=now))
+        db.add(CompanySource(company_id=company.id, data_source_id=data_source.id, external_id=raw.external_id[:200],
+                             source_url=(raw.source_url or None) and raw.source_url[:800], raw=raw.raw, fetched_at=now))
     else:
         src.raw = raw.raw
         src.fetched_at = now

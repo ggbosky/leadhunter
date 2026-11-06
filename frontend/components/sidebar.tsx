@@ -63,8 +63,9 @@ export function Sidebar() {
           );
         })}
       </nav>
-      <div className="px-5 py-4 text-xs opacity-60">
-        {data?.automation_paused ? "⏸ Automatizace pozastavena" : "● Automatizace aktivní"}
+      <div className="flex items-center justify-between px-5 py-4 text-xs opacity-60">
+        <span>{data?.automation_paused ? "⏸ Automatizace pozastavena" : "● Automatizace aktivní"}</span>
+        <a href="/auth/logout" className="hover:underline">Odhlásit</a>
       </div>
     </aside>
   );

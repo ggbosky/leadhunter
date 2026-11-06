@@ -66,6 +66,10 @@ def dashboard_stats(db: Session) -> dict[str, Any]:
     sent = dict(db.execute(select(func.date(OutreachEvent.occurred_at), func.count(OutreachEvent.id)).where(
         OutreachEvent.occurred_at >= since, OutreachEvent.event_type.in_(["message_sent", "connection_requested", "follow_up_sent"]))
         .group_by(func.date(OutreachEvent.occurred_at))).all())
+    # Postgres vrací date, SQLite řetězec – sjednotit klíče
+    disc = {str(k): v for k, v in disc.items()}
+    ana = {str(k): v for k, v in ana.items()}
+    sent = {str(k): v for k, v in sent.items()}
     days = []
     for i in range(14):
         d = (since + timedelta(days=i)).date().isoformat()

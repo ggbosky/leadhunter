@@ -114,8 +114,11 @@ def resolve_executable() -> str | None:
 
 
 def _launch(p):
+    args = ["--disable-dev-shm-usage"]
+    if os.environ.get("LEADHUNTER_IN_DOCKER"):
+        args.append("--no-sandbox")  # kontejner bez user namespaces (Hugging Face, Render…)
     try:
-        return p.chromium.launch(args=["--disable-dev-shm-usage"])
+        return p.chromium.launch(args=args)
     except Exception:  # noqa: BLE001
         exe = resolve_executable()
         if not exe:
@@ -199,7 +202,15 @@ def capture_site(company_id: int, pages: dict[str, str], fetcher: PoliteFetcher 
                         from urllib.parse import urlparse
                         RATE_LIMITER.wait(urlparse(url).netloc, s.per_domain_delay_seconds)
                         t0 = time.monotonic()
-                        resp = page.goto(url, wait_until="domcontentloaded", timeout=s.screenshot_timeout_ms)
+                        resp = None
+                        for attempt in range(2):  # přechodné síťové chyby (net::ERR_…) zkusíme ještě jednou
+                            try:
+                                resp = page.goto(url, wait_until="domcontentloaded", timeout=s.screenshot_timeout_ms)
+                                break
+                            except Exception as nav_exc:  # noqa: BLE001
+                                if attempt == 1 or "net::ERR_" not in str(nav_exc):
+                                    raise
+                                page.wait_for_timeout(2000)
                         try:
                             page.wait_for_load_state("networkidle", timeout=8000)
                         except PwTimeout:

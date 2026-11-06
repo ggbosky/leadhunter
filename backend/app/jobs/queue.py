@@ -80,11 +80,17 @@ def job_log(job: AutomationJob, message: str) -> None:
     job.log = entries[-100:]
 
 
-def claim_next(db: Session, worker: str, manual_only: bool = False) -> AutomationJob | None:
+# krátké úlohy spouštěné z UI (ne dávkové vyhledávání)
+INTERACTIVE_TYPES = ["analyze", "generate_messages", "score_all", "check_sources", "daily_report", "followup_check"]
+
+
+def claim_next(db: Session, worker: str, manual_only: bool = False, job_types: list[str] | None = None) -> AutomationJob | None:
     now = utcnow()
     q = select(AutomationJob.id).where(AutomationJob.status == "queued", AutomationJob.run_after <= now)
     if manual_only:
         q = q.where(AutomationJob.trigger == "manual")
+    if job_types:
+        q = q.where(AutomationJob.job_type.in_(job_types))
     ids = db.scalars(q.order_by(AutomationJob.priority, AutomationJob.id).limit(5)).all()
     for jid in ids:
         res = db.execute(update(AutomationJob).where(AutomationJob.id == jid, AutomationJob.status == "queued")
@@ -177,19 +183,24 @@ class Worker:
             t = threading.Thread(target=self._loop, args=(f"{self.name}-{i}",), daemon=True, name=f"lh-worker-{i}")
             t.start()
             self._threads.append(t)
-        log.info("Worker spuštěn (%s vláken)", self.concurrency)
+        # vyhrazené vlákno pro ruční akce z UI – nečekají za dlouhou automatizací
+        t = threading.Thread(target=self._loop, args=(f"{self.name}-interactive", True), daemon=True, name="lh-worker-ui")
+        t.start()
+        self._threads.append(t)
+        log.info("Worker spuštěn (%s vláken + 1 pro ruční akce)", self.concurrency)
 
     def stop(self, timeout: float = 5.0) -> None:
         self._stop.set()
         for t in self._threads:
             t.join(timeout=timeout)
 
-    def _loop(self, wname: str) -> None:
+    def _loop(self, wname: str, interactive: bool = False) -> None:
         while not self._stop.is_set():
             try:
                 with SessionLocal() as db:
                     paused = bool(get_setting(db, "automation").get("paused"))
-                    job = claim_next(db, wname, manual_only=paused)
+                    job = claim_next(db, wname, manual_only=paused or interactive,
+                                     job_types=INTERACTIVE_TYPES if interactive else None)
                 if job is None:
                     self._stop.wait(self.poll)
                     continue

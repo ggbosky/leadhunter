@@ -18,6 +18,9 @@ def _make_engine(url: str):
     kwargs: dict = {"future": True}
     if url.startswith("sqlite"):
         kwargs["connect_args"] = {"check_same_thread": False, "timeout": 30}
+    else:
+        # serverless Postgres (Neon) zavírá nečinná spojení – ověřit před použitím
+        kwargs.update(pool_pre_ping=True, pool_recycle=300, pool_size=5, max_overflow=5)
     eng = create_engine(url, **kwargs)
     if url.startswith("sqlite"):
         @event.listens_for(eng, "connect")
